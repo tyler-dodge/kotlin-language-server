@@ -49,9 +49,6 @@ import org.jetbrains.kotlin.types.typeUtil.replaceArgumentsWithStarProjections
 import org.jetbrains.kotlin.types.checker.KotlinTypeChecker
 import java.util.concurrent.TimeUnit
 
-// The maximum number of completion items
-private const val MAX_COMPLETION_ITEMS = 75
-
 // The minimum length after which completion lists are sorted
 private const val MIN_SORT_LENGTH = 3
 
@@ -74,10 +71,10 @@ fun completions(file: CompiledFile, cursor: Int, index: SymbolIndex, config: Com
         + (if (elementItemList.isEmpty()) keywordCompletionItems(partial) else emptySequence())
     )
     val itemList = items
-        .take(MAX_COMPLETION_ITEMS)
+    
         .toList()
         .onEachIndexed { i, item -> item.sortText = i.toString().padStart(2, '0') }
-    val isIncomplete = itemList.size >= MAX_COMPLETION_ITEMS || elementItemList.isEmpty()
+    val isIncomplete = elementItemList.isEmpty()
 
     return CompletionList(isIncomplete, itemList)
 }
@@ -116,7 +113,7 @@ private fun indexCompletionItems(file: CompiledFile, cursor: Int, element: KtEle
     }
 
     return index
-        .query(partial, queryName, limit = MAX_COMPLETION_ITEMS)
+        .query(partial, queryName)
         .asSequence()
         .filter { it.kind != Symbol.Kind.MODULE } // Ignore global module/package name completions for now, since they cannot be 'imported'
         .filter { it.fqName.shortName() !in importedNames && it.fqName.parent() !in wildcardPackages }
