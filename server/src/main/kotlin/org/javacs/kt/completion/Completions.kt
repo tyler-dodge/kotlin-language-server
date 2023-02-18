@@ -63,13 +63,12 @@ fun completions(file: CompiledFile, cursor: Int, index: SymbolIndex, config: Com
 
     val isExhaustive = element !is KtNameReferenceExpression
                     && element !is KtTypeElement
-                    && element !is KtQualifiedExpression
-                    && element !is KtNamedFunction
                     && element !is KtBlockExpression
+                    && (element !is KtQualifiedExpression || element is KtDotQualifiedExpression)
 
     val items = (
         elementItemList.asSequence()
-        // + (if (elementItemList.isEmpty() || !isExhaustive) indexCompletionItems(file, cursor, element, index, partial).filter { it.label !in elementItemLabels } else emptySequence())
+        + (if (!isExhaustive) indexCompletionItems(file, cursor, element, index, partial).filter { it.label !in elementItemLabels } else emptySequence())
     )
     val itemList = items
         .toList()
@@ -246,7 +245,6 @@ private fun completableElement(file: CompiledFile, cursor: Int): KtElement? {
             ?: el.parent?.parent as? KtQualifiedExpression
             // ?
             ?: el as? KtNameReferenceExpression
-            ?: el as? KtNamedFunction
             ?: el as? KtBlockExpression
 }
 
