@@ -64,6 +64,8 @@ fun completions(file: CompiledFile, cursor: Int, index: SymbolIndex, config: Com
     val isExhaustive = element !is KtNameReferenceExpression
                     && element !is KtTypeElement
                     && element !is KtQualifiedExpression
+                    && element !is KtNamedFunction
+                    && element !is KtBlockExpression
 
     val items = (
         elementItemList.asSequence()
@@ -246,6 +248,8 @@ private fun completableElement(file: CompiledFile, cursor: Int): KtElement? {
             ?: el.parent?.parent as? KtQualifiedExpression
             // ?
             ?: el as? KtNameReferenceExpression
+            ?: el as? KtNamedFunction
+            ?: el as? KtBlockExpression
 }
 
 private fun elementCompletions(file: CompiledFile, cursor: Int, surroundingElement: KtElement): Sequence<DeclarationDescriptor> {
@@ -312,6 +316,11 @@ private fun elementCompletions(file: CompiledFile, cursor: Int, surroundingEleme
         }
         // ?
         is KtNameReferenceExpression -> {
+            LOG.info("Completing identifier '{}'", surroundingElement.text)
+            val scope = file.scopeAtPoint(surroundingElement.startOffset) ?: return noResult("No scope at ${file.describePosition(cursor)}", emptySequence())
+            identifiers(scope)
+        }
+        is KtBlockExpression -> {
             LOG.info("Completing identifier '{}'", surroundingElement.text)
             val scope = file.scopeAtPoint(surroundingElement.startOffset) ?: return noResult("No scope at ${file.describePosition(cursor)}", emptySequence())
             identifiers(scope)
