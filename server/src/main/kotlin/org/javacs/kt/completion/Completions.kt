@@ -69,11 +69,9 @@ fun completions(file: CompiledFile, cursor: Int, index: SymbolIndex, config: Com
 
     val items = (
         elementItemList.asSequence()
-        + (if (!isExhaustive) indexCompletionItems(file, cursor, element, index, partial).filter { it.label !in elementItemLabels } else emptySequence())
-        + (if (elementItemList.isEmpty()) keywordCompletionItems(partial) else emptySequence())
+        // + (if (elementItemList.isEmpty() || !isExhaustive) indexCompletionItems(file, cursor, element, index, partial).filter { it.label !in elementItemLabels } else emptySequence())
     )
     val itemList = items
-    
         .toList()
         .onEachIndexed { i, item -> item.sortText = i.toString().padStart(2, '0') }
     val isIncomplete = elementItemList.isEmpty()
