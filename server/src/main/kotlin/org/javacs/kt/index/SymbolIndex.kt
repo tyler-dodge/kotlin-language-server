@@ -14,6 +14,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
 import kotlin.sequences.Sequence
+import java.util.concurrent.CompletableFuture
 
 private const val MAX_FQNAME_LENGTH = 255
 private const val MAX_SHORT_NAME_LENGTH = 80
@@ -82,6 +83,15 @@ class SymbolIndex {
     private val db = Database.connect("jdbc:h2:mem:symbolindex;DB_CLOSE_DELAY=-1", "org.h2.Driver")
 
     var progressFactory: Progress.Factory = Progress.Factory.None
+    private var isRebuildingIndex: CompletableFuture<Unit> = CompletableFuture.completedFuture(null)
+
+    @Synchronized public fun rebuildingIndex(): CompletableFuture<Unit> {
+        return this.isRebuildingIndex
+    }
+
+    @Synchronized private fun updateRebuildingIndexFuture(future: CompletableFuture<Unit>) {
+        this.isRebuildingIndex = future
+    }
 
     init {
         transaction(db) {
@@ -93,8 +103,8 @@ class SymbolIndex {
     fun refresh(module: ModuleDescriptor, exclusions: Sequence<DeclarationDescriptor>) {
         val started = System.currentTimeMillis()
         LOG.info("Updating full symbol index...")
-
-        progressFactory.create("Indexing").thenApplyAsync { progress ->
+        
+        val future: CompletableFuture<Unit> = progressFactory.create("Indexing").thenApplyAsync { progress ->
             try {
                 transaction(db) {
                     addDeclarations(allDescriptors(module, exclusions))
@@ -110,6 +120,7 @@ class SymbolIndex {
 
             progress.close()
         }
+        updateRebuildingIndexFuture(future)
     }
 
     // Removes a list of indexes and adds another list. Everything is done in the same transaction.

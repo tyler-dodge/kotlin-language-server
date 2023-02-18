@@ -145,8 +145,9 @@ class KotlinTextDocumentService(
     override fun completion(position: CompletionParams) = async.compute {
         reportTime {
             LOG.info("Completing at {}", describePosition(position))
-
-            val (file, cursor) = recover(position, Recompile.NEVER) // TODO: Investigate when to recompile
+            sp.index.rebuildingIndex().get()
+            val (file, cursor) = recover(position, Recompile.AFTER_DOT) // TODO: Investigate when to recompile
+            
             val completions = completions(file, cursor, sp.index, config.completion)
             LOG.info("Found {} items", completions.items.size)
 
