@@ -246,6 +246,7 @@ private fun completableElement(file: CompiledFile, cursor: Int): KtElement? {
             // ?
             ?: el as? KtNameReferenceExpression
             ?: el as? KtBlockExpression
+            ?: el.findParent<KtBlockExpression>()
 }
 
 private fun elementCompletions(file: CompiledFile, cursor: Int, surroundingElement: KtElement): Sequence<DeclarationDescriptor> {
@@ -393,9 +394,18 @@ private fun isCompanionOfSealed(kotlinType: KotlinType): Boolean {
 
 private fun findPartialIdentifier(file: CompiledFile, cursor: Int): String {
     val line = file.lineBefore(cursor)
-    if (line.matches(Regex(".*\\."))) return ""
-    else if (line.matches(Regex(".*\\.\\w+"))) return line.substringAfterLast(".")
-    else return Regex("\\w+").findAll(line).lastOrNull()?.value ?: ""
+    val partial = StringBuilder()
+    var consumed = line
+
+    while (!consumed.isEmpty()) {
+        val head = consumed.substring(0,1)
+        if (head == "(" || head == "[" || head == "{" || head == " " || head == "\t") {
+            return partial.toString()
+        }
+        partial.append(head)
+        consumed = consumed.substring(1)
+    }
+    return partial.toString()
 }
 
 fun memberOverloads(type: KotlinType, identifier: String): Sequence<CallableDescriptor> {
