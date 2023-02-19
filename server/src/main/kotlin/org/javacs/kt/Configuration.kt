@@ -32,7 +32,7 @@ public data class ExternalSourcesConfiguration(
     /** Whether kls-URIs should be sent to the client to describe classes in JARs. */
     var useKlsScheme: Boolean = false,
     /** Whether external classes should be automatically converted to Kotlin. */
-    var autoConvertToKotlin: Boolean = false
+    var autoConvertToKotlin: Boolean = true
 )
 
 public data class Configuration(
