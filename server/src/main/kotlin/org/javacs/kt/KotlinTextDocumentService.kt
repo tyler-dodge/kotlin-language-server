@@ -116,6 +116,7 @@ class KotlinTextDocumentService(
     override fun definition(position: DefinitionParams): CompletableFuture<Either<List<Location>, List<LocationLink>>> = async.compute {
         reportTime {
             LOG.info("Go-to-definition at {}", describePosition(position))
+            sp.index.rebuildingIndex().get()
 
             val (file, cursor) = recover(position, Recompile.NEVER)
             goToDefinition(file, cursor, uriContentProvider.classContentProvider, tempDirectory, config.externalSources, cp)
