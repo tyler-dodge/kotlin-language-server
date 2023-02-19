@@ -46,7 +46,7 @@ fun goToDefinition(
     if (destination != null) {
         val rawClassURI = destination.uri
 
-        if (isInsideArchive(rawClassURI, cp)) {
+        if (isInsideArchive(rawClassURI, cp) || rawClassURI.contains(".class")) {
             parseURI(rawClassURI).toKlsURI()?.let { klsURI ->
                 val (klsSourceURI, content) = classContentProvider.contentOf(klsURI)
 
@@ -61,7 +61,7 @@ fun goToDefinition(
                         val name = klsSourceURI.fileName.partitionAroundLast(".").first
                         val extensionWithoutDot = klsSourceURI.fileExtension
                         val extension = if (extensionWithoutDot != null) ".$extensionWithoutDot" else ""
-                        tempDir.createTempFile(name, extension)
+                        tempDir.createTempFile("", "-" + name + extension)
                             .also {
                                 it.toFile().writeText(content)
                                 cachedTempFiles[klsSourceURI] = it

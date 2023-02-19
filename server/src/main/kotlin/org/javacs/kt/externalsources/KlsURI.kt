@@ -42,7 +42,8 @@ data class KlsURI(val fileUri: URI, val query: Map<QueryParam, String>) {
     enum class ArchiveType(val delimiter: String) {
         JAR("!"),
         ZIP("!"),
-        JDK("!/modules")
+        JDK("!/modules"),
+        LOCAL("")
     }
 
     private val queryString: String
@@ -56,7 +57,7 @@ data class KlsURI(val fileUri: URI, val query: Map<QueryParam, String>) {
             .takeIf { it.size > 1 }
             ?.lastOrNull()
 
-    private val archiveType: ArchiveType
+    val archiveType: ArchiveType
         get() = when {
             fileUri.schemeSpecificPart.contains("!/modules") -> {
                 ArchiveType.JDK
@@ -64,13 +65,20 @@ data class KlsURI(val fileUri: URI, val query: Map<QueryParam, String>) {
             fileUri.schemeSpecificPart.contains(".zip!") -> {
                 ArchiveType.ZIP
             }
+            fileUri.schemeSpecificPart.contains(".jar!") -> {
+                ArchiveType.ZIP
+            }
             else -> {
-                ArchiveType.JAR
+                ArchiveType.LOCAL
             }
         }
 
     val archivePath: Path
-        get() = Paths.get(parseURI(fileUri.schemeSpecificPart.split(archiveType.delimiter)[0]))
+        get() = if (archiveType == ArchiveType.LOCAL) {
+            Paths.get(URI.create(fileUri.schemeSpecificPart))
+        } else {
+            Paths.get(parseURI(fileUri.schemeSpecificPart.split(archiveType.delimiter)[0]))
+        }
 
     private val innerPath: String
         get() = fileUri.schemeSpecificPart.split(archiveType.delimiter, limit = 2)[1]
@@ -114,6 +122,11 @@ data class KlsURI(val fileUri: URI, val query: Map<QueryParam, String>) {
     }
 
     fun readContents(): String = when (archiveType) {
+        ArchiveType.LOCAL -> {
+            val file = File("$archivePath")
+            file.bufferedReader()
+                .use(BufferedReader::readText)
+        }
         ArchiveType.ZIP -> {
             val zipFile = ZipFile(File("$archivePath"))
             zipFile.getInputStream(zipFile.getEntry(innerPath.trimStart('/')))
