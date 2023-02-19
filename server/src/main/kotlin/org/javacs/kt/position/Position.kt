@@ -11,8 +11,13 @@ import org.javacs.kt.util.toPath
 import org.jetbrains.kotlin.descriptors.SourceFile
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithSource
+import org.jetbrains.kotlin.descriptors.DeserializedDescriptor
 import org.jetbrains.kotlin.js.resolve.diagnostics.findPsi
+import org.jetbrains.kotlin.load.kotlin.JvmPackagePartSource
+import org.jetbrains.kotlin.load.kotlin.toSourceElement
 import org.jetbrains.kotlin.resolve.source.PsiSourceFile
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import kotlin.math.max
 
 fun extractRange(content: String, range: Range) =
@@ -91,6 +96,31 @@ fun location(declaration: DeclarationDescriptor): Location? {
     val psiLocation = declaration.findPsi()?.let(::location)
     if (psiLocation != null) return psiLocation
 
+    if (declaration is DeserializedDescriptor) {
+        return when (val original = declaration.original) {
+            is DeserializedClassDescriptor ->
+                when (val source = original.source) {
+                    is org.jetbrains.kotlin.load.kotlin.KotlinJvmBinarySourceElement ->
+                        Location(
+                            "file://" + source.binaryClass.location,
+                            Range(Position(0, 0), Position(0, 0))
+                        )
+                    else -> null
+                }
+
+            is DeserializedSimpleFunctionDescriptor ->
+                when (val binarySource = original.containerSource) {
+                    is JvmPackagePartSource ->
+                        binarySource.knownJvmBinaryClass?.location?.let {
+                            Location(
+                                "file://" + it,
+                                Range(Position(0, 0), Position(0, 0)))
+                        }
+                    else -> null
+                }
+            else -> null
+        }
+    }
     if (declaration is DeclarationDescriptorWithSource) {
         val sourceFile = declaration.source.containingFile
         when (sourceFile) {
