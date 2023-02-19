@@ -149,7 +149,9 @@ class SymbolIndex {
 
             if (validFqName(descriptorFqn) && (extensionReceiverFqn?.let { validFqName(it) } != false)) {
                 Symbols.deleteWhere {
-                    (Symbols.fqName eq descriptorFqn.toString()) and (Symbols.extensionReceiverType eq extensionReceiverFqn?.toString())
+                    Op.build {
+                        (Symbols.fqName eq descriptorFqn.toString()) and (Symbols.extensionReceiverType eq extensionReceiverFqn?.toString())
+                    }
                 }
             } else {
                 LOG.warn("Excluding symbol {} from index since its name is too long", descriptorFqn.toString())
